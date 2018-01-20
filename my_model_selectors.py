@@ -83,7 +83,7 @@ class SelectorBIC(ModelSelector):
             try:
                 model = self.base_model(n_component)
                 logl = model.score(self.X, self.lengths)
-                parameters = n_component ** 2 + 2 * n_component * len(self.X[0])
+                parameters = n_component ** 2 + (2 * n_component * len(self.X[0]) - 1)
                 bic_score = (-2 * logl + parameters * math.log(len(self.X)))
                 if bic_score < best_score:
                     best_score = bic_score
@@ -107,8 +107,28 @@ class SelectorDIC(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on DIC scores
-        raise NotImplementedError
+        best_score = float("-inf")
+        best_n_component = None
+
+        for n_components in range(self.max_n_components, self.max_n_components + 1):
+            try:
+                model = self.base_model(n_components)
+                logl = model.score(self.X, self.lengths)
+                anti_logl = 0
+                for word in self.words:
+                    if word is not self.this_word:
+                        anti_logl += model.score(self.X, self.lengths)
+
+                m = len(self.words)
+                dic_score = logl - anti_logl / (m -1)
+                if dic_score > best_score:
+                    best_score = dic_score
+                    best_n_component = n_components
+            except:
+                pass
+
+        return self.base_model(best_n_component)
+
 
 
 class SelectorCV(ModelSelector):
@@ -119,30 +139,36 @@ class SelectorCV(ModelSelector):
     @property
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
+
         best_n_components = 0
-        best_score = float("-inf")
+        best_score = float("inf")
         n_splits = min(3, len(self.lengths))
         kf = KFold(n_splits)
 
         for n_components in range(self.min_n_components, self.max_n_components + 1):
             total_score = 0
-            try:
-                for cv_train_idx, cv_test_idx in kf.split(self.sequences):
 
+            for cv_train_idx, cv_test_idx in kf.split(self.sequences):
+
+                try:
                     X_train, lengths_train = combine_sequences(cv_train_idx, self.sequences)
                     X_test, lengths_test = combine_sequences(cv_test_idx, self.sequences)
-
                     model = self.base_model(n_components).fit(X_train, lengths_train)
-
                     score = model.score(X_test, lengths_test)
                     total_score += score
 
-            except:
-                pass
+                except:
+                    pass
 
             ave_score = total_score / n_splits
-            if ave_score > best_score:
+
+            if ave_score < best_score:
+
                 best_score = ave_score
                 best_n_components = n_components
+            #print(best_n_components)
 
         return self.base_model(best_n_components)
+
+
+
