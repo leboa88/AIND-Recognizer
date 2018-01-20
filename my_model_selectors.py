@@ -58,18 +58,6 @@ class SelectorConstant(ModelSelector):
         :return: GaussianHMM object
         """
         best_num_components = self.n_constant
-
-        best_score = float("inf")
-
-        for n_component in range(self.min_n_components, self.max_n_components):
-            model = self.base_model(n_component)
-            logl = model.score()
-
-
-            if bic_score < best_score:
-                best_score = bic_score
-
-
         return self.base_model(best_num_components)
 
 
@@ -131,20 +119,20 @@ class SelectorCV(ModelSelector):
     @property
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
-        best_n_of_states = 0
+        best_n_components = 0
         best_score = float("-inf")
+        n_splits = min(3, len(self.lengths))
+        kf = KFold(n_splits)
 
-        for n_of_states in range(self.min_n_components, self.max_n_components + 1):
+        for n_components in range(self.min_n_components, self.max_n_components + 1):
             total_score = 0
-            n_splits = min(3, len(self.lengths))
-            kf = KFold(n_splits)
             try:
                 for cv_train_idx, cv_test_idx in kf.split(self.sequences):
 
                     X_train, lengths_train = combine_sequences(cv_train_idx, self.sequences)
                     X_test, lengths_test = combine_sequences(cv_test_idx, self.sequences)
 
-                    model = self.base_model(n_of_states).fit(X_train, lengths_train)
+                    model = self.base_model(n_components).fit(X_train, lengths_train)
 
                     score = model.score(X_test, lengths_test)
                     total_score += score
@@ -155,6 +143,6 @@ class SelectorCV(ModelSelector):
             ave_score = total_score / n_splits
             if ave_score > best_score:
                 best_score = ave_score
-                best_n_of_states = n_of_states
+                best_n_components = n_components
 
-        return self.base_model(best_n_of_states)
+        return self.base_model(best_n_components)
