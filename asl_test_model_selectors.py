@@ -27,9 +27,9 @@ class TestSelectors(TestCase):
         self.assertGreaterEqual(model.n_components, 2)
 
     def test_select_cv_interface(self):
-        model = SelectorCV(self.sequences, self.xlengths, 'JOHN').select
+        model = SelectorCV(self.sequences, self.xlengths, 'JOHN').select()
         self.assertGreaterEqual(model.n_components, 2)
-        model = SelectorCV(self.sequences, self.xlengths, 'CHICKEN').select
+        model = SelectorCV(self.sequences, self.xlengths, 'CHICKEN').select()
         self.assertGreaterEqual(model.n_components, 2)
 
     def test_select_dic_interface(self):

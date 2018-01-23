@@ -138,19 +138,18 @@ class SelectorCV(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         best_score = float("inf")
-        best_n_component = 0
+        best_n_components = 0
 
         # Determine the number of folds
         n_splits = min(3, len(self.sequences))
         split_method = KFold(n_splits)
 
         # Iterate through the number of components
-        for n_component in range (self.min_n_components, self.max_n_components + 1):
+        for n_components in range(self.min_n_components, self.max_n_components + 1):
             total_score = 0
             # If there is only 1 word, no splitting can be made
             if len(self.sequences) == 1:
-                model = GaussianHMM(n_components=n_component, covariance_type="diag", n_iter=1000,
-                                    random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+                model = self.base_model(n_components)
                 ave_score = model.score(self.X, self.lengths)
             else:
                 # Train models for each split
@@ -159,8 +158,8 @@ class SelectorCV(ModelSelector):
                         X_train, lengths_train = combine_sequences(cv_train_idx, self.sequences)
                         X_test, lengths_test = combine_sequences(cv_test_idx, self.sequences)
 
-                        model = GaussianHMM(n_components=n_component, covariance_type="diag", n_iter=1000,
-                                            random_state=self.random_state, verbose=False).fit(X_train, lengths_train)
+                        model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
+                                    random_state=self.random_state, verbose=False).fit(X_train, lengths_train)
 
                         total_score += model.score(X_test, lengths_test)
                     except:
@@ -170,6 +169,6 @@ class SelectorCV(ModelSelector):
 
             if ave_score < best_score:
                 best_score = ave_score
-                best_n_component = n_component
+                best_n_components = n_components
 
-        return self.base_model(best_n_component)
+        return self.base_model(best_n_components)
