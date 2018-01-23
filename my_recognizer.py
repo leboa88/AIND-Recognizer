@@ -36,10 +36,9 @@ def recognize(models: dict, test_set: SinglesData):
         for word, model in models.items():
             try:
                 score = model.score(X_test, lengths_test)
-                word_probabilities[word] = score
             except:
                 score = float("-inf")
-                word_probabilities[word] = score
+            word_probabilities[word] = score
 
             if score > best_score or score == float("-inf"):
                 best_score = score
