@@ -142,17 +142,21 @@ class SelectorCV(ModelSelector):
 
         # Determine the number of folds
         n_splits = min(3, len(self.sequences))
-        split_method = KFold(n_splits)
 
         # Iterate through the number of components
         for n_components in range(self.min_n_components, self.max_n_components + 1):
             total_score = 0
+            ave_score = 0
             # If there is only 1 word, no splitting can be made
-            if len(self.sequences) == 1:
-                model = self.base_model(n_components)
-                ave_score = model.score(self.X, self.lengths)
+            if n_splits < 2:
+                try:
+                    model = self.base_model(n_components)
+                    ave_score = model.score(self.X, self.lengths)
+                except:
+                    pass
             else:
                 # Train models for each split
+                split_method = KFold(n_splits)
                 for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
                     try:
                         X_train, lengths_train = combine_sequences(cv_train_idx, self.sequences)

@@ -37,11 +37,14 @@ def recognize(models: dict, test_set: SinglesData):
             try:
                 score = model.score(X_test, lengths_test)
                 word_probabilities[word] = score
-                if score > best_score:
-                    best_score = score
-                    guess = word
             except:
-                pass
+                score = float("-inf")
+                word_probabilities[word] = score
+
+            if score > best_score or score == float("-inf"):
+                best_score = score
+                guess = word
+
         probabilities.append(word_probabilities)
         guesses.append(guess)
 
