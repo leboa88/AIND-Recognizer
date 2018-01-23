@@ -73,7 +73,7 @@ class SelectorBIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         best_score = float("inf")
-        best_model = None
+        best_n_components = 0
 
         # Iterate through the number of components
         for n_component in range(self.min_n_components, self.max_n_components + 1):
@@ -85,11 +85,11 @@ class SelectorBIC(ModelSelector):
                 bic_score = (-2 * logl + parameters * math.log(len(self.X)))
                 if bic_score < best_score:
                     best_score = bic_score
-                    best_model = model
+                    best_n_components = n_component
             except:
                 pass
 
-        return best_model
+        return self.base_model(best_n_components)
 
 
 class SelectorDIC(ModelSelector):
@@ -148,17 +148,15 @@ class SelectorCV(ModelSelector):
             total_score = 0
             ave_score = 0
             # If there is only 1 word, no splitting can be made
-            if n_splits < 2:
-                try:
+            try:
+                if n_splits < 2:
                     model = self.base_model(n_components)
                     ave_score = model.score(self.X, self.lengths)
-                except:
-                    pass
-            else:
-                # Train models for each split
-                split_method = KFold(n_splits)
-                for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
-                    try:
+                else:
+                    # Train models for each split
+                    split_method = KFold(n_splits)
+                    for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
+
                         X_train, lengths_train = combine_sequences(cv_train_idx, self.sequences)
                         X_test, lengths_test = combine_sequences(cv_test_idx, self.sequences)
 
@@ -166,11 +164,11 @@ class SelectorCV(ModelSelector):
                                     random_state=self.random_state, verbose=False).fit(X_train, lengths_train)
 
                         total_score += model.score(X_test, lengths_test)
-                    except:
-                        pass
-                # Get an average score
-                ave_score = total_score / (n_splits - 1)
 
+                    # Get an average score
+                    ave_score = total_score / (n_splits - 1)
+            except:
+                pass
             if ave_score < best_score:
                 best_score = ave_score
                 best_n_components = n_components
