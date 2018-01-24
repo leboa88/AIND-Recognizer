@@ -73,6 +73,7 @@ class SelectorBIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         best_score = float("inf")
+        best_model = None
         best_n_components = 0
 
         # Iterate through the number of components
@@ -119,7 +120,7 @@ class SelectorDIC(ModelSelector):
                     if word != self.this_word:
                         X, length = self.hwords[word]
                         anti_logl += model.score(X, length)
-                dic_score = logl - anti_logl / (len(self.hwords) - 2)
+                dic_score = logl - anti_logl / (len(self.hwords) - 1)
 
                 if dic_score > best_score:
                     best_score = dic_score
@@ -137,11 +138,11 @@ class SelectorCV(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        best_score = float("inf")
+        best_score = float("-inf")
         best_n_components = 0
 
         # Determine the number of folds
-        n_splits = min(3, len(self.sequences))
+        folds = min(3, len(self.sequences))
 
         # Iterate through the number of components
         for n_components in range(self.min_n_components, self.max_n_components + 1):
@@ -149,12 +150,12 @@ class SelectorCV(ModelSelector):
             ave_score = 0
             # If there is only 1 word, no splitting can be made
             try:
-                if n_splits < 2:
+                if folds < 2:
                     model = self.base_model(n_components)
                     ave_score = model.score(self.X, self.lengths)
                 else:
                     # Train models for each split
-                    split_method = KFold(n_splits)
+                    split_method = KFold(n_splits=folds, shuffle=True)
                     for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
 
                         X_train, lengths_train = combine_sequences(cv_train_idx, self.sequences)
@@ -166,10 +167,10 @@ class SelectorCV(ModelSelector):
                         total_score += model.score(X_test, lengths_test)
 
                     # Get an average score
-                    ave_score = total_score / (n_splits - 1)
+                    ave_score = total_score / folds
             except:
                 pass
-            if ave_score < best_score:
+            if ave_score > best_score:
                 best_score = ave_score
                 best_n_components = n_components
 
